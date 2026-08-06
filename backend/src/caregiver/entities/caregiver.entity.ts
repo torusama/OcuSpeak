@@ -1,49 +1,37 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  OneToMany,
-} from 'typeorm';
+import { Entity, Column, OneToMany } from 'typeorm';
 
-import { Child } from '../../child/entities/child.entity';
+import { BaseEntity } from '../../common/entities/base.entity';
+import { ChildProfile } from '../../child/entities/child.entity';
+
+export enum CaregiverRole {
+  PARENT = 'PARENT',
+  GUARDIAN = 'GUARDIAN',
+  CARE_STAFF = 'CARE_STAFF',
+}
 
 @Entity('caregivers')
-export class Caregiver {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
+export class Caregiver extends BaseEntity {
   @Column()
   fullName: string;
 
-  @Column({
-    unique: true,
-  })
+  @Column({ unique: true })
   email: string;
 
-  @Column()
+  @Column({ select: false })
   password: string;
 
-  @Column({
-    nullable: true,
-  })
+  @Column({ nullable: true })
   phone: string;
 
-  @Column({
-    nullable: true,
-  })
+  @Column({ nullable: true })
   avatar: string;
 
-  @OneToMany(
-    () => Child,
-    (child) => child.caregiver,
-  )
-  children: Child[];
+  @Column({ type: 'enum', enum: CaregiverRole, default: CaregiverRole.PARENT })
+  role: CaregiverRole;
 
-  @CreateDateColumn()
-  createdAt: Date;
+  @Column({ nullable: true })
+  fcmToken: string;
 
-  @UpdateDateColumn()
-  updatedAt: Date;
+  @OneToMany(() => ChildProfile, (child) => child.caregiver)
+  children: ChildProfile[];
 }

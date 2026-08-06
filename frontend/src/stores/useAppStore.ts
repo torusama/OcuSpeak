@@ -27,16 +27,35 @@ const demoChild: ChildProfileSummary = {
 };
 
 export type AppStore = {
+  // ---- Caregiver (OcuSpeak Care) auth — backed by the real backend ----
   caregiverLoggedIn: boolean;
   caregiverName: string;
+  /** Real backend caregiver UUID, set after a successful /auth/login or /auth/register call. */
+  caregiverId: string | null;
+  /** JWT returned by the backend; also mirrored to localStorage for the axios interceptor. */
+  authToken: string | null;
+
   childProfiles: ChildProfileSummary[];
   activeChildId: string | null;
   selectedItems: AacItem[];
   pageByCategory: Record<string, number>;
   lastRequestId: string | null;
   requestStatus: CommunicationStatus;
+
+  // ---- Patient Web (child's device) session ----
+  patientLoggedIn: boolean;
+  patientName: string;
+  patientPaired: boolean;
+  /** Real backend child UUID this device is paired to. */
+  patientChildId: string | null;
+  /** Real backend device UUID assigned during pairing. */
+  patientDeviceId: string | null;
+
   setCaregiverLoggedIn: (value: boolean) => void;
   setCaregiverName: (value: string) => void;
+  setCaregiverAuth: (auth: { caregiverId: string; authToken: string; caregiverName: string }) => void;
+  clearCaregiverAuth: () => void;
+
   addChildProfile: (profile: ChildProfileSummary) => void;
   updateChildProfile: (id: string, profile: Partial<ChildProfileSummary>) => void;
   setActiveChildId: (id: string | null) => void;
@@ -46,6 +65,11 @@ export type AppStore = {
   setCategoryPage: (categoryId: string, page: number) => void;
   setLastRequest: (id: string, status: CommunicationStatus) => void;
   setRequestStatus: (status: CommunicationStatus) => void;
+
+  setPatientLoggedIn: (value: boolean) => void;
+  setPatientName: (value: string) => void;
+  setPatientPaired: (value: boolean) => void;
+  setPatientDevice: (childId: string, deviceId: string) => void;
 };
 
 export const useAppStore = create<AppStore>()(
@@ -53,14 +77,33 @@ export const useAppStore = create<AppStore>()(
     (set) => ({
       caregiverLoggedIn: false,
       caregiverName: 'Võ Tấn An',
+      caregiverId: null,
+      authToken: null,
+
       childProfiles: [demoChild],
       activeChildId: demoChild.id,
       selectedItems: [],
       pageByCategory: {},
       lastRequestId: null,
       requestStatus: 'SENT',
+
+      patientLoggedIn: false,
+      patientName: 'Bé An',
+      patientPaired: false,
+      patientChildId: null,
+      patientDeviceId: null,
+
       setCaregiverLoggedIn: (value) => set({ caregiverLoggedIn: value }),
       setCaregiverName: (value) => set({ caregiverName: value }),
+      setCaregiverAuth: ({ caregiverId, authToken, caregiverName }) => {
+        localStorage.setItem('ocuspeak_token', authToken);
+        set({ caregiverId, authToken, caregiverName, caregiverLoggedIn: true });
+      },
+      clearCaregiverAuth: () => {
+        localStorage.removeItem('ocuspeak_token');
+        set({ caregiverId: null, authToken: null, caregiverLoggedIn: false });
+      },
+
       addChildProfile: (profile) =>
         set((state) => ({
           childProfiles: [...state.childProfiles, profile],
@@ -81,28 +124,48 @@ export const useAppStore = create<AppStore>()(
       setCategoryPage: (categoryId, page) =>
         set((state) => ({ pageByCategory: { ...state.pageByCategory, [categoryId]: page } })),
       setLastRequest: (id, status) => set({ lastRequestId: id, requestStatus: status }),
-      setRequestStatus: (status) => set({ requestStatus: status })
+      setRequestStatus: (status) => set({ requestStatus: status }),
+
+      setPatientLoggedIn: (value) => set({ patientLoggedIn: value }),
+      setPatientName: (value) => set({ patientName: value }),
+      setPatientPaired: (value) => set({ patientPaired: value }),
+      setPatientDevice: (childId, deviceId) =>
+        set({ patientChildId: childId, patientDeviceId: deviceId, patientPaired: true })
     }),
     {
       name: 'ocuspeak-ui-state',
-      version: 11,
+      version: 12,
       migrate: (persisted) => {
         const state = (persisted ?? {}) as Partial<AppStore>;
         return {
           ...state,
           childProfiles: state.childProfiles?.length ? state.childProfiles : [demoChild],
-          activeChildId: state.activeChildId ?? demoChild.id
+          activeChildId: state.activeChildId ?? demoChild.id,
+          patientLoggedIn: state.patientLoggedIn ?? false,
+          patientName: state.patientName ?? demoChild.displayName,
+          patientPaired: state.patientPaired ?? false,
+          patientChildId: state.patientChildId ?? null,
+          patientDeviceId: state.patientDeviceId ?? null,
+          caregiverId: state.caregiverId ?? null,
+          authToken: state.authToken ?? null
         } as AppStore;
       },
       partialize: (state) => ({
         caregiverLoggedIn: state.caregiverLoggedIn,
         caregiverName: state.caregiverName,
+        caregiverId: state.caregiverId,
+        authToken: state.authToken,
         childProfiles: state.childProfiles,
         activeChildId: state.activeChildId,
         selectedItems: state.selectedItems,
         pageByCategory: state.pageByCategory,
         lastRequestId: state.lastRequestId,
-        requestStatus: state.requestStatus
+        requestStatus: state.requestStatus,
+        patientLoggedIn: state.patientLoggedIn,
+        patientName: state.patientName,
+        patientPaired: state.patientPaired,
+        patientChildId: state.patientChildId,
+        patientDeviceId: state.patientDeviceId
       })
     }
   )

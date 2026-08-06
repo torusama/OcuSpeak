@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -16,33 +18,38 @@ import { SosModule } from './sos/sos.module';
 import { FirebaseModule } from './firebase/firebase.module';
 import { SocketModule } from './socket/socket.module';
 
+import databaseConfig from './config/database.config';
+import jwtConfig from './config/jwt.config';
+import firebaseConfig from './config/firebase.config';
+
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
+      load: [databaseConfig, jwtConfig, firebaseConfig],
     }),
 
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-
-      host: process.env.DATABASE_HOST,
-
-      port: Number(process.env.DATABASE_PORT),
-
-      username: process.env.DATABASE_USER,
-
-      password: process.env.DATABASE_PASSWORD,
-
-      database: process.env.DATABASE_NAME,
-
-      autoLoadEntities: true,
-
-      synchronize: true,
-
-      logging: true,
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres',
+        host: config.get<string>('database.host'),
+        port: config.get<number>('database.port'),
+        username: config.get<string>('database.username'),
+        password: config.get<string>('database.password'),
+        database: config.get<string>('database.database'),
+        autoLoadEntities: true,
+        synchronize: config.get<string>('NODE_ENV') !== 'production',
+        logging: config.get<string>('NODE_ENV') === 'development',
+      }),
     }),
 
+    FirebaseModule,
+    SocketModule,
     AuthModule,
     CaregiverModule,
     ChildModule,
@@ -51,12 +58,15 @@ import { SocketModule } from './socket/socket.module';
     CommunicationModule,
     MonitoringModule,
     SosModule,
-    FirebaseModule,
-    SocketModule,
   ],
 
   controllers: [AppController],
 
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_PIPE, useValue: new ValidationPipe({ whitelist: true, transform: true }) },
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
+    { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
+  ],
 })
 export class AppModule {}

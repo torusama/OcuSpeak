@@ -8,7 +8,8 @@ import { Card } from '@/components/ui/Card';
 import { Field, Input, Select } from '@/components/ui/Form';
 import { Stepper } from '@/components/ui/Stepper';
 import { Toggle } from '@/components/ui/Toggle';
-import { fakeLogin } from '@/services/api/mockApi';
+import { login, getChildrenByCaregiver } from '@/services/api/apiClient';
+import { useAppStore } from '@/stores/useAppStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const steps = ['Tài khoản', 'Hồ sơ trẻ', 'Giao diện', 'Phản hồi', 'Ghép nối'];
@@ -31,8 +32,13 @@ export function OnboardingPage() {
   const [tts, setTts] = useState(true);
   const [realImages, setRealImages] = useState(false);
 
+  const setCaregiverAuth = useAppStore((state) => state.setCaregiverAuth);
+
   const signUpWithGoogle = async () => {
-    await fakeLogin('google.user@ocuspeak.vn', 'google-login');
+    // MVP: dùng tài khoản demo đã seed sẵn thay cho OAuth Google thật.
+    const { accessToken, caregiver } = await login('demo@ocuspeak.dev', 'demo123456');
+    setCaregiverAuth({ caregiverId: caregiver.id, authToken: accessToken, caregiverName: caregiver.fullName });
+    await getChildrenByCaregiver(caregiver.id).catch(() => []);
     setStep(1);
   };
 

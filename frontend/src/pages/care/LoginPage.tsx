@@ -8,8 +8,8 @@ import { AuthShell } from '@/components/layout/AuthShell';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Field, Input } from '@/components/ui/Form';
-import { fakeLogin } from '@/services/api/mockApi';
-import { useAppStore } from '@/stores/useAppStore';
+import { login, getChildrenByCaregiver, type ApiChild } from '@/services/api/apiClient';
+import { useAppStore, type ChildProfileSummary } from '@/stores/useAppStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const schema = z.object({
@@ -18,6 +18,36 @@ const schema = z.object({
 });
 
 type LoginForm = z.infer<typeof schema>;
+
+function ageFromBirthday(birthday: string) {
+  const diff = Date.now() - new Date(birthday).getTime();
+  return Math.max(0, Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000)));
+}
+
+function toChildSummary(child: ApiChild): ChildProfileSummary {
+  const gridMap: Record<string, 4 | 6 | 9> = { '2x2': 4, '3x3': 6, '4x4': 9 };
+  const dwellSeconds = Math.min(3, Math.max(1, Math.round(((child.config?.dwellTimeMs ?? 1200) / 1000) * 2) / 2)) as
+    | 1
+    | 1.5
+    | 2
+    | 3;
+  return {
+    id: child.id,
+    displayName: child.fullName,
+    age: ageFromBirthday(child.birthday),
+    avatarInitials: child.fullName
+      .split(' ')
+      .slice(-2)
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase(),
+    gridSize: gridMap[child.config?.gridSize ?? '3x3'] ?? 6,
+    dwellTime: dwellSeconds,
+    calibrationMode: 5,
+    ttsEnabled: child.config?.voiceOutputEnabled ?? true,
+    realImageMode: child.config?.imageStyle === 'PHOTO'
+  };
+}
 
 function GoogleIcon() {
   return (
@@ -34,32 +64,43 @@ export function CaregiverLoginPage() {
   useDocumentTitle('Đăng nhập người chăm sóc');
   const navigate = useNavigate();
   const location = useLocation();
-  const setCaregiverLoggedIn = useAppStore((state) => state.setCaregiverLoggedIn);
-  const setCaregiverName = useAppStore((state) => state.setCaregiverName);
+  const setCaregiverAuth = useAppStore((state) => state.setCaregiverAuth);
+  const addChildProfile = useAppStore((state) => state.addChildProfile);
   const form = useForm<LoginForm>({
     resolver: zodResolver(schema),
-    defaultValues: { email: 'caregiver@ocuspeak.demo', password: 'demo2026' }
+    defaultValues: { email: 'demo@ocuspeak.dev', password: 'demo123456' }
   });
 
-  const finishLogin = () => {
-    setCaregiverName('Võ Tấn An');
-    setCaregiverLoggedIn(true);
+  const finishLogin = async (caregiverId: string, authToken: string, fullName: string) => {
+    setCaregiverAuth({ caregiverId, authToken, caregiverName: fullName });
+    try {
+      const children = await getChildrenByCaregiver(caregiverId);
+      children.forEach((child) => addChildProfile(toChildSummary(child)));
+    } catch {
+      // Không có hồ sơ trẻ nào hoặc lỗi tải — người dùng có thể tạo mới ở bước tiếp theo.
+    }
     const target = (location.state as { from?: string } | null)?.from ?? '/care/children';
     navigate(target);
   };
 
   const submit = form.handleSubmit(async (values) => {
     try {
-      await fakeLogin(values.email, values.password);
-      finishLogin();
-    } catch {
-      form.setError('root', { message: 'Không thể đăng nhập. Hãy kiểm tra tài khoản hoặc kết nối mạng.' });
+      const { accessToken, caregiver } = await login(values.email, values.password);
+      await finishLogin(caregiver.id, accessToken, caregiver.fullName);
+    } catch (error) {
+      form.setError('root', {
+        message: error instanceof Error ? error.message : 'Không thể đăng nhập. Hãy kiểm tra tài khoản hoặc kết nối mạng.'
+      });
     }
   });
 
   const loginWithGoogle = async () => {
-    await fakeLogin('caregiver.google@ocuspeak.demo', 'google-demo');
-    finishLogin();
+    try {
+      const { accessToken, caregiver } = await login('demo@ocuspeak.dev', 'demo123456');
+      await finishLogin(caregiver.id, accessToken, caregiver.fullName);
+    } catch (error) {
+      form.setError('root', { message: error instanceof Error ? error.message : 'Không thể đăng nhập bằng Google.' });
+    }
   };
 
   return (
@@ -123,7 +164,7 @@ export function CaregiverLoginPage() {
             </form>
           </div>
         </Card>
-        <p className="mt-5 text-center text-sm font-semibold text-[#7581a4]">Tài khoản mẫu: caregiver@ocuspeak.demo / demo2026</p>
+        <p className="mt-5 text-center text-sm font-semibold text-[#7581a4]">Tài khoản mẫu: demo@ocuspeak.dev / demo123456</p>
       </div>
     </AuthShell>
   );

@@ -1,52 +1,41 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  ManyToOne,
-} from 'typeorm';
+import { Entity, Column, ManyToOne, OneToMany, OneToOne } from 'typeorm';
 
+import { BaseEntity } from '../../common/entities/base.entity';
 import { Caregiver } from '../../caregiver/entities/caregiver.entity';
+import { Device } from '../../device/entities/device.entity';
+import { ChildConfig } from './child-config.entity';
 
 @Entity('children')
-export class Child {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
+export class ChildProfile extends BaseEntity {
   @Column()
   fullName: string;
 
-  @Column({
-    type: 'date',
-  })
+  @Column({ type: 'date' })
   birthday: Date;
 
   @Column()
   gender: string;
 
-  @Column({
-    nullable: true,
-  })
+  @Column({ nullable: true })
   diagnosis: string;
 
-  @Column({
-    default: 'vi',
-  })
+  @Column({ default: 'vi' })
   language: string;
 
-  @ManyToOne(
-    () => Caregiver,
-    caregiver => caregiver.children,
-    {
-      onDelete: 'CASCADE',
-    },
-  )
+  @Column({ nullable: true })
+  avatar: string;
+
+  @ManyToOne(() => Caregiver, (caregiver) => caregiver.children, {
+    onDelete: 'CASCADE',
+  })
   caregiver: Caregiver;
 
-  @CreateDateColumn()
-  createdAt: Date;
+  @OneToMany(() => Device, (device) => device.child)
+  devices: Device[];
 
-  @UpdateDateColumn()
-  updatedAt: Date;
+  @OneToOne(() => ChildConfig, (config) => config.child, { cascade: true })
+  config: ChildConfig;
 }
+
+// Backward-compatible alias used by earlier scaffolding.
+export { ChildProfile as Child };

@@ -5,15 +5,15 @@ import { OrbisGuideCard } from '@/components/brand/OrbisGuideCard';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Field, Input } from '@/components/ui/Form';
-import { verifyPairCode } from '@/services/api/mockApi';
+import { pairDevice } from '@/services/api/apiClient';
 import { useAppStore } from '@/stores/useAppStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export function ConnectPage() {
   useDocumentTitle('Kết nối thiết bị giao tiếp');
   const navigate = useNavigate();
-  const setPatientPaired = useAppStore((state) => state.setPatientPaired);
-  const [code, setCode] = useState('AN2026');
+  const setPatientDevice = useAppStore((state) => state.setPatientDevice);
+  const [code, setCode] = useState('DEMO01');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -21,12 +21,19 @@ export function ConnectPage() {
     setLoading(true);
     setError('');
     try {
-      await verifyPairCode(code);
-      setPatientPaired(true);
+      const device = await pairDevice(code);
+      if (!device.child) {
+        throw new Error('Thiết bị chưa được gán cho hồ sơ trẻ nào.');
+      }
+      setPatientDevice(device.child.id, device.id);
       navigate('/patient/permissions');
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : '';
-      setError(message === 'PAIR_CODE_EXPIRED' ? 'Mã đã hết hạn. Người chăm sóc cần tạo mã mới trong trang Quản lý thiết bị.' : 'Mã gồm 6 ký tự và chưa đúng hoặc chưa sẵn sàng.');
+      setError(
+        message.includes('hết hạn')
+          ? 'Mã đã hết hạn. Người chăm sóc cần tạo mã mới trong trang Quản lý thiết bị.'
+          : message || 'Mã gồm 6 ký tự và chưa đúng hoặc chưa sẵn sàng.'
+      );
     } finally {
       setLoading(false);
     }
@@ -61,7 +68,7 @@ export function ConnectPage() {
       <Card className="border-[#dbe5f3] p-6 shadow-[0_18px_40px_rgba(87,110,170,.09)] sm:p-8">
         <span className="grid h-14 w-14 place-items-center rounded-2xl bg-[#eef3ff] text-[#4c57a9]"><Link2 size={28} /></span>
         <h2 className="mt-5 text-2xl font-black text-[#28305f]">Nhập mã kết nối</h2>
-        <p className="mt-2 font-semibold text-[#7581a4]">Mã mẫu hiện tại: AN2026</p>
+        <p className="mt-2 font-semibold text-[#7581a4]">Mã mẫu hiện tại: DEMO01</p>
         <div className="mt-6">
           <Field label="Mã 6 ký tự" error={error} required>
             <div className="relative">

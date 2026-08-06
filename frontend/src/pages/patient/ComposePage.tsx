@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { IconSymbol } from '@/components/common/IconSymbol';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { generateSentence, submitCommunication } from '@/services/api/mockApi';
+import { submitCommunicationEvent } from '@/services/api/apiClient';
 import { useAppStore } from '@/stores/useAppStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useChildPath } from '@/hooks/useChildPath';
@@ -14,30 +14,23 @@ export function ComposePage() {
   const navigate = useNavigate();
   const childPath = useChildPath();
   const selectedItems = useAppStore((state) => state.selectedItems);
+  const patientChildId = useAppStore((state) => state.patientChildId);
   const removeLast = useAppStore((state) => state.removeLastSelectedItem);
   const clear = useAppStore((state) => state.clearSelectedItems);
   const setLastRequest = useAppStore((state) => state.setLastRequest);
   const quickSentence = useMemo(() => selectedItems.map((item) => item.quickSentence).join(' '), [selectedItems]);
   const [sentence, setSentence] = useState(quickSentence);
-  const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState(false);
-  const [fallback, setFallback] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => setSentence(quickSentence), [quickSentence]);
 
-  const generate = async () => {
+  // Ghép các câu nhanh của từng biểu tượng thành một câu tự nhiên hơn — xử lý cục bộ, không cần gọi máy chủ.
+  const makeNatural = () => {
     if (!selectedItems.length) return;
-    setGenerating(true);
-    setFallback(false);
-    try {
-      const result = await generateSentence(selectedItems.map((item) => item.id));
-      setSentence(result.sentence);
-    } catch {
-      setSentence(quickSentence);
-      setFallback(true);
-    } finally {
-      setGenerating(false);
-    }
+    const labels = selectedItems.map((item) => item.label).join(', ');
+    const lastSentence = selectedItems[selectedItems.length - 1]?.quickSentence ?? '';
+    setSentence(selectedItems.length === 1 ? lastSentence : `${labels}. ${lastSentence}`);
   };
 
   const speak = () => {
@@ -52,11 +45,26 @@ export function ComposePage() {
 
   const send = async () => {
     if (!sentence || !selectedItems.length) return;
+    if (!patientChildId) {
+      setError('Thiết bị chưa ghép nối với hồ sơ trẻ nào.');
+      return;
+    }
     setSending(true);
-    const event = await submitCommunication(selectedItems.map((item) => item.id), sentence);
-    setLastRequest(event.id, event.status);
-    clear();
-    navigate(childPath(`request/${event.id}`));
+    setError('');
+    try {
+      const event = await submitCommunicationEvent(
+        patientChildId,
+        selectedItems.map((item) => item.id),
+        sentence
+      );
+      setLastRequest(event.id, navigator.onLine ? 'SENT' : 'QUEUED_LOCAL');
+      clear();
+      navigate(childPath(`request/${event.id}`));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Không thể gửi câu. Vui lòng thử lại.');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -70,11 +78,11 @@ export function ComposePage() {
         <div className="mt-5 rounded-[24px] border-2 border-ocu-indigo/20 bg-ocu-indigo/5 p-5 sm:p-7">
           <div className="flex items-center gap-2 text-sm font-black text-ocu-indigo"><Sparkles size={18} /> Câu giao tiếp</div>
           <p className="mt-4 min-h-20 text-2xl font-black leading-relaxed text-ocu-ink sm:text-3xl">{sentence || 'Câu sẽ xuất hiện ở đây.'}</p>
-          {fallback && <p className="mt-3 rounded-xl bg-ocu-orange/20 p-3 text-sm font-bold text-ocu-ink">Hệ thống tạo câu đang tạm gián đoạn. Đang dùng câu mẫu an toàn.</p>}
+          {error && <p className="mt-3 rounded-xl bg-[#fff0ee] p-3 text-sm font-bold text-[#b73b32]">{error}</p>}
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <Button size="patient" variant="secondary" onClick={speak} disabled={!sentence} leftIcon={<Volume2 size={22} />}>Phát</Button>
-          <Button size="patient" variant="secondary" loading={generating} onClick={() => void generate()} disabled={!selectedItems.length} leftIcon={<Sparkles size={22} />}>Làm tự nhiên</Button>
+          <Button size="patient" variant="secondary" onClick={makeNatural} disabled={!selectedItems.length} leftIcon={<Sparkles size={22} />}>Làm tự nhiên</Button>
           <Button size="patient" variant="secondary" onClick={removeLast} disabled={!selectedItems.length} leftIcon={<Eraser size={22} />}>Xóa cuối</Button>
           <Button size="patient" variant="secondary" onClick={clear} disabled={!selectedItems.length} leftIcon={<Trash2 size={22} />}>Xóa hết</Button>
           <Button size="patient" loading={sending} onClick={() => void send()} disabled={!sentence || !selectedItems.length} leftIcon={<Send size={22} />}>Gửi câu</Button>

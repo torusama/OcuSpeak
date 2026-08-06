@@ -3,15 +3,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { ChildController } from './child.controller';
 import { ChildService } from './child.service';
-
-import { Child } from './entities/child.entity';
+import { ChildProfile } from './entities/child.entity';
+import { ChildConfig } from './entities/child-config.entity';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Child]),
-  ],
+  imports: [TypeOrmModule.forFeature([ChildProfile, ChildConfig])],
   controllers: [ChildController],
   providers: [ChildService],
-  exports: [TypeOrmModule],
+  exports: [TypeOrmModule, ChildService],
 })
 export class ChildModule {}

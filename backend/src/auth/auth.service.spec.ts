@@ -1,12 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
+import { Caregiver } from '../caregiver/entities/caregiver.entity';
+import { createMockRepository } from '../test-utils/mock-repository';
 
 describe('AuthService', () => {
   let service: AuthService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthService],
+      providers: [
+        AuthService,
+        { provide: getRepositoryToken(Caregiver), useValue: createMockRepository() },
+        { provide: JwtService, useValue: { sign: jest.fn(() => 'mock-token') } },
+      ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
