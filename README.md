@@ -9,7 +9,7 @@
 - Gemini và Text-to-Speech chỉ nhận dữ liệu văn bản hoặc sự kiện đã chuẩn hóa, không nhận dữ liệu camera.
 
 ---
-
+`
 ## 1. Bài toán và giá trị của OcuSpeak
 
 - OcuSpeak giúp người dùng không thể nói hoặc thao tác tay giao tiếp bằng cách nhìn vào các ô AAC trên màn hình.

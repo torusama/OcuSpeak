@@ -1,0 +1,218 @@
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Baloo+2:wght@600;700;800&family=Condiment&family=Nunito:wght@400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #1e2947;
+  background: #f6f8fb;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --ocu-red: #c93a32;
+  --ocu-orange: #e79a3b;
+  --ocu-yellow: #f6e7a5;
+  --ocu-green: #64906d;
+  --ocu-pink: #b98fae;
+  --ocu-purple: #8574b5;
+  --ocu-indigo: #4f5a98;
+  --ocu-blue: #6e94b8;
+  --canvas: #f6f8fb;
+  --surface: #ffffff;
+  --surface-soft: #eef2f7;
+  --ink: #1e2947;
+  --text: #48536d;
+  --text-muted: #737d92;
+  --border: #dee4ed;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #f6f8fb;
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+button, input, select, textarea { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+img, video, svg { max-width: 100%; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(110, 148, 184, 0.28);
+}
+::selection { background: rgba(133, 116, 181, 0.22); }
+
+@keyframes route-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes reveal-left {
+  from { opacity: 0; transform: translateX(-14px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes reveal-right {
+  from { opacity: 0; transform: translateX(14px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes reveal-scale {
+  from { opacity: 0; transform: scale(.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes soft-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes soft-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .76; }
+}
+@keyframes blink {
+  0%, 45%, 52%, 100% { transform: scaleY(1); }
+  48%, 50% { transform: scaleY(0.08); }
+}
+
+.public-background {
+  background:
+    radial-gradient(circle at 7% 4%, rgba(246, 231, 165, .48), transparent 23rem),
+    radial-gradient(circle at 96% 12%, rgba(110, 148, 184, .20), transparent 26rem),
+    linear-gradient(180deg, #fbfcfe 0%, #f6f8fb 62%, #f9fafc 100%);
+}
+.subtle-grid {
+  background-image:
+    linear-gradient(rgba(79, 90, 152, .045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(79, 90, 152, .045) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.route-enter { animation: route-enter .34s ease-out both; }
+.fade-up { animation: fade-up .42s ease-out both; }
+.fade-up-1 { animation: fade-up .42s ease-out .05s both; }
+.fade-up-2 { animation: fade-up .42s ease-out .1s both; }
+.fade-up-3 { animation: fade-up .42s ease-out .15s both; }
+.float-soft { animation: soft-float 4.2s ease-in-out infinite; }
+.reveal-left { animation: reveal-left .45s cubic-bezier(.22,1,.36,1) both; }
+.reveal-right { animation: reveal-right .45s cubic-bezier(.22,1,.36,1) both; }
+.reveal-scale { animation: reveal-scale .38s ease-out both; }
+.delay-1 { animation-delay: .06s; }
+.delay-2 { animation-delay: .12s; }
+.delay-3 { animation-delay: .18s; }
+.delay-4 { animation-delay: .24s; }
+.pulse-soft { animation: soft-pulse 2.2s ease-in-out infinite; }
+.mascot-eye { transform-origin: center; animation: blink 4.8s ease-in-out infinite; }
+.orbis-grotesk { font-family: 'Anton', sans-serif; }
+.orbis-condiment { font-family: 'Condiment', cursive; }
+.display-rounded { font-family: 'Baloo 2', 'Nunito', sans-serif; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@layer components {
+  .page-shell { @apply mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-8 lg:py-9; }
+  .care-grid { @apply grid gap-5 md:grid-cols-2 xl:grid-cols-4; }
+  .section-card { @apply rounded-[22px] border border-ocu-border bg-white p-5 shadow-soft sm:p-6; }
+  .section-title { @apply text-xl font-extrabold tracking-[-0.02em] text-ocu-ink sm:text-2xl; font-family: 'Baloo 2', 'Nunito', sans-serif; }
+  .eyebrow { @apply text-[11px] font-extrabold uppercase tracking-[0.14em] text-ocu-indigo; }
+  .muted { @apply text-sm font-medium leading-relaxed text-ocu-muted; }
+  .patient-panel { @apply rounded-[26px] border border-white/90 bg-white/95 p-4 shadow-card backdrop-blur sm:p-6; }
+  .safe-area-bottom { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+  .scrollbar-thin { scrollbar-width: thin; scrollbar-color: #c8cfdb transparent; }
+  .glass-surface { @apply border border-white/80 bg-white/85 shadow-card backdrop-blur-xl; }
+  .soft-section { @apply rounded-[28px] border border-ocu-border bg-white shadow-soft; }
+  .focus-ring { @apply focus-visible:ring-4 focus-visible:ring-ocu-blue/25; }
+}
+
+@keyframes orbis-wave {
+  0%, 100% { transform: rotate(0deg); }
+  45% { transform: rotate(5deg); }
+  70% { transform: rotate(-2deg); }
+}
+
+.orbis-wave {
+  transform-origin: 160px 145px;
+  animation: orbis-wave 2.8s ease-in-out infinite;
+}
+
+.ui-reveal-heading {
+  animation: reveal-left .44s cubic-bezier(.22,1,.36,1) both;
+}
+
+.ui-reveal-card {
+  animation: fade-up .46s cubic-bezier(.22,1,.36,1) both;
+}
+
+.grid > .ui-reveal-card:nth-child(1) { animation-delay: .04s; }
+.grid > .ui-reveal-card:nth-child(2) { animation-delay: .09s; }
+.grid > .ui-reveal-card:nth-child(3) { animation-delay: .14s; }
+.grid > .ui-reveal-card:nth-child(4) { animation-delay: .19s; }
+.grid > .ui-reveal-card:nth-child(5) { animation-delay: .24s; }
+.grid > .ui-reveal-card:nth-child(6) { animation-delay: .29s; }
+.grid > .ui-reveal-card:nth-child(7) { animation-delay: .34s; }
+.grid > .ui-reveal-card:nth-child(8) { animation-delay: .39s; }
+
+.scroll-reveal {
+  opacity: 0;
+  transition:
+    opacity .62s cubic-bezier(.22,1,.36,1),
+    transform .62s cubic-bezier(.22,1,.36,1);
+  will-change: opacity, transform;
+}
+.scroll-reveal-up { transform: translateY(24px); }
+.scroll-reveal-left { transform: translateX(-24px); }
+.scroll-reveal-right { transform: translateX(24px); }
+.scroll-reveal-scale { transform: scale(.965); }
+.scroll-reveal.is-visible { opacity: 1; transform: translate3d(0,0,0) scale(1); }
+
+@keyframes orbis-float {
+  0%, 100% { transform: translateY(0) rotate(-.4deg); }
+  50% { transform: translateY(-7px) rotate(.4deg); }
+}
+@keyframes orbis-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.012); }
+}
+@keyframes orbis-wave-arm {
+  0%, 100% { transform: rotate(0deg); }
+  35% { transform: rotate(-11deg); }
+  70% { transform: rotate(7deg); }
+}
+@keyframes orbis-cheer-left {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-6deg); }
+}
+@keyframes orbis-cheer-right {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(6deg); }
+}
+@keyframes orbis-beacon {
+  0%, 100% { opacity: .7; transform: scale(.94); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+@keyframes orbis-spark {
+  0%, 100% { opacity: .55; transform: scale(.96); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+@keyframes orbis-face-blink {
+  0%, 43%, 49%, 100% { transform: scaleY(1); }
+  46%, 47% { transform: scaleY(.08); }
+}
+
+.orbis-float { animation: orbis-float 4.4s ease-in-out infinite; }
+.orbis-body-breathe { transform-origin: 120px 185px; animation: orbis-breathe 3.2s ease-in-out infinite; }
+.orbis-wave-arm { transform-origin: 162px 160px; animation: orbis-wave-arm 2.4s ease-in-out infinite; }
+.orbis-cheer-arm-left { transform-origin: 80px 160px; animation: orbis-cheer-left 1.7s ease-in-out infinite; }
+.orbis-cheer-arm-right { transform-origin: 160px 160px; animation: orbis-cheer-right 1.7s ease-in-out infinite; }
+.orbis-beacon { transform-origin: 199px 58px; animation: orbis-beacon 1.2s ease-in-out infinite; }
+.orbis-spark { transform-origin: 120px 60px; animation: orbis-spark 1.8s ease-in-out infinite; }
+.orbis-eye-blink { transform-origin: 120px 112px; animation: orbis-face-blink 5.2s ease-in-out infinite; }
