@@ -205,6 +205,30 @@ export async function respondToCommunicationEvent(eventId: string, content: stri
   }
 }
 
+// ---------- Monitoring ----------
+
+export type ApiMonitoringType =
+  | 'DEVICE_ONLINE'
+  | 'DEVICE_OFFLINE'
+  | 'CALIBRATION'
+  | 'BATTERY_LOW'
+  | 'INACTIVITY'
+  | 'HEARTBEAT';
+
+/** Called from Patient Web / Eye Tracking Engine bridge — no caregiver login required. */
+export async function createMonitoringRecord(
+  childId: string,
+  type: ApiMonitoringType,
+  metadata?: Record<string, unknown>,
+) {
+  try {
+    const { data } = await apiClient.post('/monitoring/records', { childId, type, metadata });
+    return data;
+  } catch (error) {
+    throw unwrapError(error);
+  }
+}
+
 // ---------- SOS ----------
 
 /** Called from Patient Web — no caregiver login required. */

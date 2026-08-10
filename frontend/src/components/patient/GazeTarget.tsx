@@ -1,7 +1,6 @@
 import { Check } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/utils/cn';
-import HoverEngine from "@/services/gaze/HoverEngine";
 
 type GazeState = 'IDLE' | 'FOCUSED' | 'DWELLING' | 'SELECTED' | 'COOLDOWN';
 
@@ -83,30 +82,16 @@ export function GazeTarget({
     }
   };
 
-  const buttonRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-      HoverEngine.setListener((element) => {
-
-          if (!buttonRef.current) return;
-
-          if (element === buttonRef.current) {
-
-              beginDwell();
-
-          } else {
-
-              cancelDwell(false);
-
-          }
-
-      });
-
-  }, []);
+  useEffect(
+    () => () => {
+      clearFrame();
+      if (cooldown.current !== null) window.clearTimeout(cooldown.current);
+    },
+    []
+  );
 
   return (
-    <button 
-      ref={buttonRef}
+    <button
       type="button"
       aria-label={label}
       aria-disabled={disabled}

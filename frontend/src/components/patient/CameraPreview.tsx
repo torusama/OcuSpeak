@@ -3,10 +3,6 @@ import { useEffect, useRef } from 'react';
 import { useCamera } from '@/app/providers/CameraProvider';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/utils/cn';
-import FaceLandmarkerService
-from "@/services/mediapipe/FaceLandmarker";
-import EyeTracker
-from "@/services/gaze/EyeTracker";
 
 export function CameraPreview({ className, showControls = true }: { className?: string; showControls?: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -15,53 +11,7 @@ export function CameraPreview({ className, showControls = true }: { className?: 
   useEffect(() => {
     if (videoRef.current) videoRef.current.srcObject = stream;
   }, [stream]);
-  useEffect(() => {
 
-    if (!stream) return;
-
-    let animationId: number;
-
-    const start = async () => {
-
-        await FaceLandmarkerService.initialize();
-
-        const detectFrame = () => {
-
-            if (videoRef.current) {
-
-                const result =
-                    FaceLandmarkerService.detect(videoRef.current);
-
-                if (result) {
-                    const eye = EyeTracker.calculate(result);
-
-                    console.clear();
-                    console.log(eye);
-
-
-
-                }
-
-            }
-
-            animationId =
-                requestAnimationFrame(detectFrame);
-
-        };
-
-        detectFrame();
-
-    };
-
-    void start();
-
-    return () => {
-
-        cancelAnimationFrame(animationId);
-
-    };
-
-}, [stream]);
   return (
     <div className={cn('overflow-hidden rounded-[26px] border-2 border-ocu-border bg-ocu-ink', className)}>
       <div className="relative aspect-video">
