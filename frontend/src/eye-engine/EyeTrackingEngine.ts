@@ -158,6 +158,15 @@ export class EyeTrackingEngine {
     const video = this.camera.videoElement;
     if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
 
+    if (!this.camera.isLive()) {
+      // Cam đã bị tắt/ngắt ở đâu đó (không phải do engine tự stop) — đừng phân
+      // tích lại khung hình đứng hình cuối cùng, coi như mất mặt ngay lập tức.
+      this.latestRawGaze = null;
+      this.latestState = { gaze: null, trackingState: 'NO_FACE' };
+      this.emitTrackingStateIfChanged('NO_FACE');
+      return;
+    }
+
     const detection = this.detector.detect(video, timestampMs);
     const brightness = this.camera.sampleBrightness(this.workCanvas);
 
@@ -172,6 +181,10 @@ export class EyeTrackingEngine {
         calibrationConfidence: this.calibrationProfile?.confidence ?? 0,
         timestampMs,
       });
+      // QUAN TRỌNG: phải xoá gaze cũ khi không còn thấy mặt, nếu không getState()
+      // sẽ tiếp tục trả về điểm nhìn/trạng thái CŨ mãi mãi (bug: tắt cam hoặc
+      // nhìn ra ngoài vẫn báo "đang nhìn" ở vị trí cũ).
+      this.latestState = { gaze: null, trackingState: quality.state };
       this.emitTrackingStateIfChanged(quality.state);
       this.bus.emit('quality', quality);
       return;

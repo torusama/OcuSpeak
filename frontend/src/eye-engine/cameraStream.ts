@@ -98,4 +98,17 @@ export class CameraStream {
   get videoElement(): HTMLVideoElement {
     return this.videoEl;
   }
+
+  /**
+   * Cam có thực sự đang phát khung hình sống hay không. Chỉ dựa vào
+   * `videoEl.readyState` là KHÔNG đủ: khi track bị stop()/disable ở bên ngoài
+   * (vd. người dùng bấm "Tắt camera", hoặc tắt cam ở hệ điều hành), video sẽ
+   * đứng lại ở khung hình cuối cùng nhưng readyState vẫn báo "có dữ liệu" —
+   * khiến AI Engine cứ phân tích lại đúng khung hình cũ như thể vẫn đang thấy mặt.
+   */
+  isLive(): boolean {
+    if (!this.stream) return false;
+    const [track] = this.stream.getVideoTracks();
+    return !!track && track.readyState === 'live' && track.enabled;
+  }
 }

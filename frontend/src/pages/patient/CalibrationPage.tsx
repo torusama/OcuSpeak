@@ -33,6 +33,7 @@ const points9: CalibrationPoint[] = [
 ];
 
 const SAMPLES_PER_POINT = 20; // ~0.6s ở 30fps — đủ để lấy trung bình ổn định cho một điểm
+const SETTLE_MS = 600; // thời gian chờ mắt "nhảy" sang điểm mới và định vị ổn định trước khi bắt đầu tính mẫu
 
 export function CalibrationPage() {
   useDocumentTitle('Hiệu chỉnh ánh mắt');
@@ -52,6 +53,9 @@ export function CalibrationPage() {
   const [samples, setSamples] = useState(0);
   const [engineReady, setEngineReady] = useState(false);
   const [error, setError] = useState('');
+  // true = mắt vừa mới chuyển sang điểm hiện tại, chưa kịp định vị ổn định —
+  // trong lúc này KHÔNG được tính mẫu, tránh lẫn ánh mắt còn hướng về điểm cũ.
+  const [settling, setSettling] = useState(true);
 
   // Khởi tạo Eye Tracking Engine một lần khi có camera stream.
   useEffect(() => {
@@ -75,15 +79,36 @@ export function CalibrationPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stream]);
 
-  // Thu mẫu gaze liên tục trong lúc trẻ nhìn vào điểm hiện tại (mỗi ~100ms).
+  // Mỗi khi chuyển sang điểm hiệu chỉnh mới (hoặc vừa sẵn sàng), bật lại thời
+  // gian "chờ ổn định" — chặn không cho tính mẫu trong lúc mắt còn đang di
+  // chuyển từ điểm cũ sang điểm mới.
   useEffect(() => {
-    if (!engineReady || paused) return;
+    if (!engineReady) return;
+    setSettling(true);
+    const timer = window.setTimeout(() => setSettling(false), SETTLE_MS);
+    return () => window.clearTimeout(timer);
+  }, [engineReady, index]);
+
+  // Lắng nghe tiến độ mẫu THẬT từ engine — chỉ engine mới biết khi nào một mẫu
+  // hợp lệ (có mặt, camera sống) thực sự được thêm vào.
+  useEffect(() => {
+    if (!engineReady) return;
+    return engineRef.current?.on('calibrationProgress', ({ sampleCount }) => {
+      setSamples(sampleCount);
+    });
+  }, [engineReady]);
+
+  // Yêu cầu engine thử lấy mẫu liên tục trong lúc trẻ đang nhìn vào điểm hiện tại
+  // (mỗi ~100ms). Engine sẽ tự bỏ qua nếu không có mặt / camera đã tắt, và ở đây
+  // ta cũng tự chặn trong lúc "settling" (mắt vừa mới chuyển điểm, chưa ổn định) —
+  // bộ đếm hiển thị chỉ tăng khi có mẫu thật (xem effect lắng nghe 'calibrationProgress' ở trên).
+  useEffect(() => {
+    if (!engineReady || paused || settling) return;
     const timer = window.setInterval(() => {
       engineRef.current?.captureCalibrationSample();
-      setSamples((value) => value + 1);
     }, 100);
     return () => window.clearInterval(timer);
-  }, [engineReady, paused, index]);
+  }, [engineReady, paused, settling, index]);
 
   // Đủ mẫu -> tự chuyển sang điểm kế, hoặc hoàn tất nếu là điểm cuối.
   useEffect(() => {
@@ -127,6 +152,8 @@ export function CalibrationPage() {
     setIndex(0);
     setSamples(0);
     setPaused(false);
+    setSettling(true);
+    window.setTimeout(() => setSettling(false), SETTLE_MS);
   };
 
   return (
@@ -162,7 +189,7 @@ export function CalibrationPage() {
         aria-label={`Điểm hiệu chỉnh ${index + 1}`}
       >
         <span className="grid h-10 w-10 place-items-center rounded-full bg-[#e7efff] text-sm font-black text-[#28305f] sm:h-12 sm:w-12">
-          {Math.min(samples, SAMPLES_PER_POINT)}/{SAMPLES_PER_POINT}
+          {settling ? '···' : `${Math.min(samples, SAMPLES_PER_POINT)}/${SAMPLES_PER_POINT}`}
         </span>
       </div>
 

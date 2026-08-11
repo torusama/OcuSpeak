@@ -41,9 +41,49 @@ export class CalibrationEngine {
     return this.pointTargets.length;
   }
 
-  /** Gọi liên tục trong lúc trẻ đang nhìn vào điểm hiện tại (Patient Web quyết định khi nào đủ mẫu để sang điểm kế). */
+  /**
+   * Kiểm tra mẫu ánh mắt có thực sự lệch đúng HƯỚNG so với điểm neo (điểm đầu
+   * tiên đã lấy mẫu) hay không, so với hướng lệch trên màn hình giữa điểm neo
+   * và điểm hiện tại. Ví dụ: điểm hiện tại nằm bên phải điểm neo trên màn hình
+   * -> ánh mắt (raw gaze x) cũng phải lệch đúng chiều tương ứng, nếu không thì
+   * coi như trẻ đang KHÔNG nhìn vào điểm này và từ chối mẫu.
+   * Điểm đầu tiên (chưa có điểm neo) luôn được chấp nhận — nó chính là gốc tham chiếu.
+   */
+  private isDirectionPlausible(raw: RawGazeFeature): boolean {
+    const anchorIndex = this.samplesByPoint.findIndex((samples) => samples.length > 0);
+    if (anchorIndex === -1 || anchorIndex === this.currentPointIndex) return true; // chưa có neo, hoặc đang là điểm neo
+
+    const anchorSamples = this.samplesByPoint[anchorIndex];
+    const anchorMeanX = mean(anchorSamples.map((s) => s.x));
+    const anchorMeanY = mean(anchorSamples.map((s) => s.y));
+
+    const targetScreen = this.pointTargets[this.currentPointIndex];
+    const anchorScreen = this.pointTargets[anchorIndex];
+
+    const DEADBAND = 0.06; // sai số cho phép trên trục màn hình gần như thẳng hàng với điểm neo
+    const MARGIN = 0.004; // dung sai nhiễu nhỏ trên raw gaze trước khi bắt buộc đúng chiều
+
+    const expectedSignX = Math.abs(targetScreen.x - anchorScreen.x) > DEADBAND ? Math.sign(targetScreen.x - anchorScreen.x) : 0;
+    const expectedSignY = Math.abs(targetScreen.y - anchorScreen.y) > DEADBAND ? Math.sign(targetScreen.y - anchorScreen.y) : 0;
+
+    const diffX = raw.x - anchorMeanX;
+    const diffY = raw.y - anchorMeanY;
+
+    if (expectedSignX !== 0 && Math.abs(diffX) > MARGIN && Math.sign(diffX) !== expectedSignX) return false;
+    if (expectedSignY !== 0 && Math.abs(diffY) > MARGIN && Math.sign(diffY) !== expectedSignY) return false;
+    return true;
+  }
+
+  /**
+   * Gọi liên tục trong lúc trẻ đang nhìn vào điểm hiện tại (Patient Web quyết
+   * định khi nào đủ mẫu để sang điểm kế). Trả về số mẫu HỢP LỆ đã thu được cho
+   * điểm hiện tại — mẫu bị từ chối (hướng nhìn không khớp điểm) sẽ KHÔNG được
+   * tính vào, giữ nguyên số cũ.
+   */
   addSample(raw: RawGazeFeature): number {
-    this.samplesByPoint[this.currentPointIndex].push(raw);
+    if (this.isDirectionPlausible(raw)) {
+      this.samplesByPoint[this.currentPointIndex].push(raw);
+    }
     return this.samplesByPoint[this.currentPointIndex].length;
   }
 
